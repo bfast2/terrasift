@@ -63,7 +63,6 @@ var magnitudeThreshold = -0.000000000000000000000000000000121
 var harmonics = 1;
 */
 
-
 /////////////////////////////////////////////////////
 ////CHECK IF USER-DEFINED PARAMETERS ARE OK ////
 /////////////////////////////////////////////////////
@@ -210,7 +209,6 @@ var landsat7Collection = ee.ImageCollection('LANDSAT/LE07/C01/T1_SR');
 var landsat8Collection = ee.ImageCollection('LANDSAT/LC08/C01/T1_SR');
 
 //mask the  clouds
-
 var landsat5Collection1 = landsat5Collection
   .filterBounds(roi)
   .filterDate(historyStart, monitoringEnd)
@@ -276,6 +274,8 @@ var collection_merge2 = collection_merge.merge(landsat8Collection01);
 
 var collection_merge3 = collection_merge2
  .sort('system:time_start')
+//print (collection_merge3.select('NDMI'));
+
 
 // subset the collection into history and monitoring period
 var histCollection = collection_merge3.filterDate(historyStart, historyEnd);
@@ -322,6 +322,8 @@ var computResiduals = function(image){
 }
 
 var residuals = fittedHarmonic.map(computResiduals);
+
+
 
 // Compute squared residuals
 var computsquaredResiduals = function(image){
@@ -492,7 +494,6 @@ var mcomputResiduals = function(image){
 var mresiduals = predictedValues.map(mcomputResiduals);
 var mresid = mresiduals.select('residual')
 var moResiduals = mresid.toArray();
-												
 var histResidual =  res.toArray();
 var moMoresid = ee.ImageCollection([histResidual,moResiduals]);
 var MonResid = moMoresid.toArrayPerBand(imageAxis);
@@ -515,7 +516,6 @@ var ter = ee.Image(0).float().toArray();
 var tesser = ter.arrayRepeat(bandAxis, 1);
 var tessermaske = ee.ImageCollection([tesser, msk]);
 var tessermsk = tessermaske.toArrayPerBand(imageAxis);
-
 
 ///... now slash off unwanted first part of Cumsum of residuals to get MOSUM residuals
 var cotx2 = tessermsk.arrayLength(imageAxis);
@@ -565,8 +565,14 @@ var time = vsr.toArray();
 
 var magnTudmas = moResiduals;
 
+
+
 /// 3.Calculate the critical borders
 
+///.. generating a sequence of values  from N obs in historical sample to N obs in monitoring sample with 
+ //interval of 1 interval and this is not a straight forward procedure
+ 
+ 
 var monisize1 = moResiduals.arrayLength(imageAxis);
 var signb = ee.Image(1).toArray()
 var kplushistzie = signb.add(histtimeseiesLength);
@@ -632,14 +638,12 @@ var magniofchange = magnTudmas.arrayMask(chiefMasker);
 var firstChange = change.arraySlice(0,0,1).toArray();
 var timeOfchange = timechange.arraySlice(0,0,1).toArray();
 var magnitude = magniofchange.arraySlice(0,0,1).toArray();
-//var criticalBorder1 = criticalBorder.arraySlice(0,0,1).toArray(); //TODO: this line has been commented out because criticalBorder has been defined previously. It is unclear which one is the correct one.
-
+var criticalBorder1 = criticalBorder.arraySlice(0,0,1).toArray();
 
 ///...mask out locations where no change is detected;
 var time0x = ee.Image(0).int().toArray();
 var timZx = time0x.arrayRepeat(bandAxis,1);
 var mas = ee.ImageCollection([magnitude,timZx]);
-
 var timOChx = ee.ImageCollection([timeOfchange,timZx]);
 var firstChx = ee.ImageCollection([firstChange,timZx]);
 
@@ -662,6 +666,8 @@ var timeCnk2 = timeCnk1.arrayFlatten([['x'],['y']]);
 var Cnk = Cnk1.arrayFlatten([['x'],['y']]);
 var firstChaDif = firstCha.arrayFlatten([['x'],['y']]);
 
+timeCnk2 = timeCnk2.select(['.*'],['breakTime']).set({'bfast:label' : 'Time of change', 'bfast:result' : 'breakTime'})
+Cnk = Cnk.select(['.*'],['breakMagnitude']).set({'bfast:label' : 'Magnitude of change', 'bfast:result' : 'breakMagnitude'})
 // Compute temporal metrics for prediction
 var b1_median_mon = MonitorLandsat.select('B1')
     .median();
@@ -728,6 +734,8 @@ var band_metrics = ee.Image(b1_ratio_median)
 .addBands(Cnk.toFloat());
 
 var band_metrics_masked = band_metrics.mask(timeCnk2);
+
+
 // historyStart,monitoringEnd,historyEnd,monitoringStart,h,period,alpha,magnitudeThreshold,harmonics
 
 var bfastResults = ee.ImageCollection([moRes,timeCnk2,Cnk,criticalBorder1,band_metrics_masked]).set({
@@ -761,6 +769,7 @@ exports.bfastMonitor = bfastMonitor;
 /// Export.table(LakeICE, 'LakeICE_peruGee', {fileFormat: 'CSV'});
 /// Export.table(LakeDAM, 'LakeDAM_peruGee', {fileFormat: 'CSV'});
 
+
 //Map.centerObject(roi, 11);
 //Map.addLayer(roi, {}, 'ROI');
 //Map.addLayer(region, {}, 'Image2');
@@ -768,5 +777,4 @@ exports.bfastMonitor = bfastMonitor;
 //Map.addLayer(timeCnk2, {min: 2017, max: 2018,'palette' : '00BFFF,CC2EFA,A901DB,6A0888,5858FA,0101DF,2E2EFE,0B0B61'},"Time of change");
 //Map.addLayer(Cnk, {min: -0.4, max:0,'palette' : 'F4FA58,FFFF00,F7D358,F7D358,FFBF00,FF4000,B43104,8A0808'}, 'Magnitude of change');
 //Map.addLayer(criticalBorder1 , {}, 'Time of change');
-
 
