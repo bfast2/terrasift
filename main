@@ -1,5 +1,5 @@
-var engine = require('users/andreim/wur:forestWatchdog/engine');
-var view = require('users/andreim/wur:forestWatchdog/view');
+var engine = require('users/andreim/forestWatchdog:engine');
+var view = require('users/andreim/forestWatchdog:view');
 
 var results = {};
 
