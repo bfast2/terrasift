@@ -63,6 +63,7 @@ var magnitudeThreshold = -0.000000000000000000000000000000121
 var harmonics = 1;
 */
 
+
 /////////////////////////////////////////////////////
 ////CHECK IF USER-DEFINED PARAMETERS ARE OK ////
 /////////////////////////////////////////////////////
@@ -209,6 +210,7 @@ var landsat7Collection = ee.ImageCollection('LANDSAT/LE07/C01/T1_SR');
 var landsat8Collection = ee.ImageCollection('LANDSAT/LC08/C01/T1_SR');
 
 //mask the  clouds
+
 var landsat5Collection1 = landsat5Collection
   .filterBounds(roi)
   .filterDate(historyStart, monitoringEnd)
@@ -246,17 +248,34 @@ var landsat8Collection1 = landsat8Collection
       )
   .map(addNDVI8);
   
+
+var landsat5Collection01 = landsat5Collection1
+.select('B1', 'B2','B3', 'B4','B5', 'B7','NDMI')
+.map(function(image){
+  return image.rename(['B1', 'B2','B3', 'B4','B5', 'B7','NDMI']);
+})
+
+var landsat7Collection01 = landsat7Collection1
+.select('B1', 'B2','B3', 'B4','B5', 'B7','NDMI')
+.map(function(image){
+  return image.rename(['B1', 'B2','B3', 'B4','B5', 'B7','NDMI']);
+})
+
+var landsat8Collection01 = landsat8Collection1
+.select('B2', 'B3','B4', 'B5','B6', 'B7','NDMI')
+.map(function(image){
+  return image.rename(['B1', 'B2','B3', 'B4','B5', 'B7', 'NDMI']);
+})
+
 // merge the collections and sort them by time
   
-var collection_merge = ee.ImageCollection(landsat5Collection1.merge(landsat7Collection1));
-var collection_merge2 = collection_merge.merge(landsat8Collection1);
+var collection_merge = ee.ImageCollection(landsat5Collection01.merge(landsat7Collection01));
+var collection_merge2 = collection_merge.merge(landsat8Collection01);
 
 //print (collection_merge2);
 
 var collection_merge3 = collection_merge2
  .sort('system:time_start')
-//print (collection_merge3.select('NDMI'));
-
 
 // subset the collection into history and monitoring period
 var histCollection = collection_merge3.filterDate(historyStart, historyEnd);
@@ -304,8 +323,6 @@ var computResiduals = function(image){
 
 var residuals = fittedHarmonic.map(computResiduals);
 
-
-
 // Compute squared residuals
 var computsquaredResiduals = function(image){
   return image.addBands(
@@ -315,7 +332,8 @@ var computsquaredResiduals = function(image){
 }
 
 var squaredResiduals = residuals.map(computsquaredResiduals);
-
+var rndmi = residuals.select('NDMI')
+var nmdi = rndmi.toArray();
 //calculate sigma i.e. sigma = sqrt(sum(e^2)/fm$df.residual)
 var residu = residuals.select('residual')
 var res = residu.toArray();
@@ -474,13 +492,15 @@ var mcomputResiduals = function(image){
 var mresiduals = predictedValues.map(mcomputResiduals);
 var mresid = mresiduals.select('residual')
 var moResiduals = mresid.toArray();
-var hresid = squaredResiduals.select('residual')
-var histResidual = hresid.toArray();
-var moMoresid = ee.ImageCollection([histResidual, moResiduals]);
+												
+var histResidual =  res.toArray();
+var moMoresid = ee.ImageCollection([histResidual,moResiduals]);
 var MonResid = moMoresid.toArrayPerBand(imageAxis);
 var moRes = MonResid.toArray()
+
 var cumSumRes = moRes.arrayAccum(imageAxis, 'sum'); 
 var imZer0 = ee.Image(0).int();
+var ksizeplu = ksize.add(1)
 var dubImZer0 = imZer0.arrayRepeat(imageAxis,ksize.int());
 var fx10 = dubImZer0.arrayRepeat(bandAxis, 1);
 var verc= fx10.toArray().float();
@@ -495,6 +515,7 @@ var ter = ee.Image(0).float().toArray();
 var tesser = ter.arrayRepeat(bandAxis, 1);
 var tessermaske = ee.ImageCollection([tesser, msk]);
 var tessermsk = tessermaske.toArrayPerBand(imageAxis);
+
 
 ///... now slash off unwanted first part of Cumsum of residuals to get MOSUM residuals
 var cotx2 = tessermsk.arrayLength(imageAxis);
@@ -519,8 +540,8 @@ var mobleng = moResmosum.arrayLength(imageAxis);
 var moSigmaStanda = dumoSigmaStanda.arrayRepeat(imageAxis,mobleng).toArray();
 
 ///... now standardise the mosum
-var moResmosumStanda = moResmosum.divide(moSigmaStanda);
-
+var moResmosumStanda1 = moResmosum.divide(moSigmaStanda);
+var moResmosumStanda = moResmosumStanda1.abs();
 ///...Time stamp...needed for time of change later
 
 // Number of milliseconds in a day.
@@ -544,35 +565,32 @@ var time = vsr.toArray();
 
 var magnTudmas = moResiduals;
 
-
-
 /// 3.Calculate the critical borders
 
-///.. generating a sequence of values  from N obs in historical sample to N obs in monitoring sample with 
- //interval of 1 interval and this is not a straight forward procedure
- 
- 
 var monisize1 = moResiduals.arrayLength(imageAxis);
 var signb = ee.Image(1).toArray()
-var  dubs1 = signb.arrayRepeat(imageAxis,monisize1.int());
-var accumSign1 = dubs1.arrayAccum(imageAxis, 'sum');
-var mborde = accumSign1.add(histtimeseiesLength);
-var fo1 = mborde.divide(histtimeseiesLength);
+var kplushistzie = signb.add(histtimeseiesLength);
+
+//logPlus
+var fo1 =  kplushistzie.divide(histtimeseiesLength);
 var foLogplus1 = fo1.log().max(1);
+
+//border
 var foLop1 = foLogplus1.multiply(2);
 var foLopSq1 = foLop1.sqrt();
-var criticalBorder1 = foLopSq1.multiply(ee.Image(criticalValue));
+var foLopSqx = foLopSq1.arrayRepeat(imageAxis,monisize1.int());
+var criticalBorder1 = foLopSqx.multiply(ee.Image(criticalValue));
 var criticalBorder = criticalBorder1.arrayRepeat(bandAxis, 1);
  
 
 ///...now create masks to mask out parts that belong to the history period
 
 var yeOnes = ee.Image(1).int();
-var timeMa = time.arrayLength(imageAxis)
-var moRepeat1 = yeOnes.arrayRepeat(imageAxis, timeMa.int()).toArray();
+//var timeMa = time.arrayLength(imageAxis)
+var moRepeat1 = yeOnes.arrayRepeat(imageAxis, monisize1.int()).toArray();
 var moRepeat  = moRepeat1.arrayRepeat(bandAxis, 1);
 var rMa = moResmosumStanda.arrayLength(imageAxis);
-var rt = rMa.subtract(timeMa);
+var rt = rMa.subtract(monisize1);
 var rtx = ee.Image(0).int();
 var rhRepeat1 = rtx.arrayRepeat(imageAxis, rt.int()).toArray();
 var rhRepeat  = rhRepeat1.arrayRepeat(bandAxis, 1);
@@ -595,25 +613,26 @@ var magniofchange = magnTudmas.arrayMask(chiefMasker);
 
 ///...mask out the positions where the magnitude of change is positive
 
-var imangx = magniofchange.divide(magniofchange.abs());
-var msMang = imangx.max(0);
-var msChangex = msMang.subtract(1);
-var fichange = change.arrayMask(msChangex);
-var timxchange = timechange.arrayMask(msChangex);
-var tMagofchange = magniofchange.arrayMask(msChangex);
+//var imangx = magniofchange.divide(magniofchange.abs());
+//var msMang = imangx.max(0);
+//var msChangex = msMang.subtract(1);
+//var fichange = change.arrayMask(msChangex);
+//var timxchange = timechange.arrayMask(msChangex);
+//var tMagofchange = magniofchange.arrayMask(msChangex);
 
 ///...Use the magnitude threshold to mask out positions where the change magnitude is
 //smaller then the magnitude threshold
-var tmagofange = tMagofchange.divide(magnitudeThreshold).int();
-var vichange =fichange.arrayMask(tmagofange);
-var ctimevichange =timxchange.arrayMask(tmagofange);
-var xtmagofchange =tMagofchange.arrayMask(tmagofange);
+//var tmagofange = tMagofchange.divide(magnitudeThreshold).int();
+//var vichange =fichange.arrayMask(tmagofange);
+//var ctimevichange =timxchange.arrayMask(tmagofange);
+//var xtmagofchange =tMagofchange.arrayMask(tmagofange);
 
 
 ///... now slice out the first position the change has occured
-var firstChange = vichange.arraySlice(0,0,1).toArray();
-var timeOfchange = ctimevichange.arraySlice(0,0,1).toArray();
-var magnitude = xtmagofchange.arraySlice(0,0,1).toArray();
+var firstChange = change.arraySlice(0,0,1).toArray();
+var timeOfchange = timechange.arraySlice(0,0,1).toArray();
+var magnitude = magniofchange.arraySlice(0,0,1).toArray();
+// var criticalBorder1 = criticalBorder.arraySlice(0,0,1).toArray(); //TODO: this line has been commented out because criticalBorder has been defined previously. It is unclear which one is the correct one.
 
 
 ///...mask out locations where no change is detected;
@@ -622,29 +641,96 @@ var timZx = time0x.arrayRepeat(bandAxis,1);
 var mas = ee.ImageCollection([magnitude,timZx]);
 
 var timOChx = ee.ImageCollection([timeOfchange,timZx]);
+var firstChx = ee.ImageCollection([firstChange,timZx]);
 
 var timeOfCvx = timOChx.toArrayPerBand(0);
 var tMa = mas.toArrayPerBand(0);
+var firsttCha = firstChx.toArrayPerBand(0);
 
-var cox = tMa.arrayReduce('min', [imageAxis]);
+var cox = tMa.arrayReduce('sum', [imageAxis]);
 var Timecox = timeOfCvx.arrayReduce("max", [imageAxis]);
+var firsttChab = firsttCha.arrayReduce('max', [imageAxis]);
 
-//var mxp = ee.Image(0).int ().toArray();
-//var mpxr = mxp.arrayRepeat(bandAxis, 1);
-//var ysoo = cox.mask(mpxr);
+
 var Cnk1 = cox.mask(cox.arrayGet([0,0]).neq(0)).toArray();
 var timeCnk1 = Timecox.mask(Timecox.arrayGet([0,0]).neq(0)).toArray();
+var firtsChnk = firsttChab.mask(firsttChab.arrayGet([0,0]).neq(0)).toArray();
+var firstCha = firtsChnk.subtract(criticalBorder1);
 
 ///... flatten the array to allow for use of palletes
 var timeCnk2 = timeCnk1.arrayFlatten([['x'],['y']]);
 var Cnk = Cnk1.arrayFlatten([['x'],['y']]);
+var firstChaDif = firstCha.arrayFlatten([['x'],['y']]);
 
-timeCnk2 = timeCnk2.select(['.*'],['breakTime']).set({'bfast:label' : 'Time of change', 'bfast:result' : 'breakTime'})
-Cnk = Cnk.select(['.*'],['breakMagnitude']).set({'bfast:label' : 'Magnitude of change', 'bfast:result' : 'breakMagnitude'})
+// Compute temporal metrics for prediction
+var b1_median_mon = MonitorLandsat.select('B1')
+    .median();
+var b1_median_his = histCollection.select('B1')
+    .median();
+    
+var b2_median_mon = MonitorLandsat.select('B2')
+    .median();
+var b2_median_his = histCollection.select('B2')
+    .median();   
+    
+var b3_median_mon = MonitorLandsat.select('B3')
+    .median();
+var b3_median_his = histCollection.select('B3')
+    .median(); 
+    
+var b4_median_mon = MonitorLandsat.select('B4')
+    .median();
+var b4_median_his = histCollection.select('B4')
+    .median(); 
 
+var b5_median_mon = MonitorLandsat.select('B5')
+    .median();
+var b5_median_his = histCollection.select('B5')
+    .median(); 
+    
+var b7_median_mon = MonitorLandsat.select('B7')
+    .median();
+var b7_median_his = histCollection.select('B7')
+    .median();  
+ var ndmi_median_mon = MonitorLandsat.select('NDMI')
+    .median();
+var ndmi_median_his = histCollection.select('NDMI')
+    .median();  
+var monrest = mresiduals.select('residual')
+    .median()
+    .float(); 
+var hisrest = residuals.select('residual')
+    .median()
+    .float(); 
+// Compute temporal metrics for prediction
+var b1_ratio_median = b1_median_his.divide(b1_median_mon);
+var b2_ratio_median = b2_median_his.divide(b2_median_mon);
+var b3_ratio_median = b3_median_his.divide(b3_median_mon);
+var b4_ratio_median = b4_median_his.divide(b4_median_mon);
+var b5_ratio_median = b5_median_his.divide(b5_median_mon);
+var b7_ratio_median = b7_median_his.divide(b7_median_mon);
+var ndmires_ratio_median = hisrest.divide(monrest);
+var ndmi_ratio_median = ndmi_median_his.divide(ndmi_median_mon);
+
+
+
+//var ndmi_perc1 = ndmi_perc.mask(Timecox.arrayGet([0,0]));
+
+var band_metrics = ee.Image(b1_ratio_median)
+.addBands(b2_ratio_median)
+.addBands(b3_ratio_median)
+.addBands(b4_ratio_median)
+.addBands(b5_ratio_median)
+.addBands(b7_ratio_median)
+.addBands(ndmi_ratio_median)
+.addBands(ndmires_ratio_median)
+.addBands(firstChaDif.toFloat())
+.addBands(Cnk.toFloat());
+
+var band_metrics_masked = band_metrics.mask(timeCnk2);
 // historyStart,monitoringEnd,historyEnd,monitoringStart,h,period,alpha,magnitudeThreshold,harmonics
 
-var bfastResults = ee.ImageCollection([moRes,timeCnk2,Cnk,criticalBorder1]).set({
+var bfastResults = ee.ImageCollection([moRes,timeCnk2,Cnk,criticalBorder1,band_metrics_masked]).set({
   'bfast:historyStart' : historyStart,
   'bfast:historyEnd' : historyEnd,
   'bfast:monitoringStart' : monitoringStart,
@@ -675,7 +761,6 @@ exports.bfastMonitor = bfastMonitor;
 /// Export.table(LakeICE, 'LakeICE_peruGee', {fileFormat: 'CSV'});
 /// Export.table(LakeDAM, 'LakeDAM_peruGee', {fileFormat: 'CSV'});
 
-
 //Map.centerObject(roi, 11);
 //Map.addLayer(roi, {}, 'ROI');
 //Map.addLayer(region, {}, 'Image2');
@@ -683,4 +768,5 @@ exports.bfastMonitor = bfastMonitor;
 //Map.addLayer(timeCnk2, {min: 2017, max: 2018,'palette' : '00BFFF,CC2EFA,A901DB,6A0888,5858FA,0101DF,2E2EFE,0B0B61'},"Time of change");
 //Map.addLayer(Cnk, {min: -0.4, max:0,'palette' : 'F4FA58,FFFF00,F7D358,F7D358,FFBF00,FF4000,B43104,8A0808'}, 'Magnitude of change');
 //Map.addLayer(criticalBorder1 , {}, 'Time of change');
+
 
