@@ -1,5 +1,5 @@
-var engine = require('users/andreim/geeMonitor:engine');
-var view = require('users/andreim/forestWatchdog:view');
+var engine = require('users/andreim/geeMonitor:monitor.js');
+var view = require('users/andreim/forestWatchdog:view.js');
 
 var results = {};
 
