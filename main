@@ -1,4 +1,4 @@
-var engine = require('users/andreim/forestWatchdog:engine');
+var engine = require('users/andreim/geeMonitor:engine');
 var view = require('users/andreim/forestWatchdog:view');
 
 var results = {};
