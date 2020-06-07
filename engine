@@ -632,7 +632,7 @@ var magniofchange = magnTudmas.arrayMask(chiefMasker);
 var firstChange = change.arraySlice(0,0,1).toArray();
 var timeOfchange = timechange.arraySlice(0,0,1).toArray();
 var magnitude = magniofchange.arraySlice(0,0,1).toArray();
-// var criticalBorder1 = criticalBorder.arraySlice(0,0,1).toArray(); //TODO: this line has been commented out because criticalBorder has been defined previously. It is unclear which one is the correct one.
+//var criticalBorder1 = criticalBorder.arraySlice(0,0,1).toArray(); //TODO: this line has been commented out because criticalBorder has been defined previously. It is unclear which one is the correct one.
 
 
 ///...mask out locations where no change is detected;
