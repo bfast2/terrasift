@@ -97,7 +97,7 @@ function updateMap(theButton){
   //timeCnk2 = ui.Map.Layer(timeCnk2,{min: ee.Date(monitoringStart), max: new Date(monitoringEnd).toISOString().split('T')[0],'palette' : '#f7fcfd,#e0ecf4,#bfd3e6,#9ebcda,#8c96c6,#8c6bb1,#88419d,#810f7c,#4d004b'},'Time of change',false)
   timeCnk2 = ui.Map.Layer(timeCnk2,{min: min, max: max,'palette' : '#f7fcfd,#e0ecf4,#bfd3e6,#9ebcda,#8c96c6,#8c6bb1,#88419d,#810f7c,#4d004b'},'Time of change',false)
   var Cnk = ee.Image(result.bfastResults.filterMetadata('bfast:result', 'equals', 'breakMagnitude').first().copyProperties(result.bfastResults))
-  Cnk = ui.Map.Layer(Cnk, {min : -0.5, max : 0.5,'palette' : '#ffffcc,#ffeda0,#fed976,#feb24c,#fd8d3c,#fc4e2a,#e31a1c,#bd0026,#800026'}, 'Magnitude of change',false);
+  Cnk = ui.Map.Layer(Cnk, {min : -0.5, max : 0,'palette' : '#ffffcc,#ffeda0,#fed976,#feb24c,#fd8d3c,#fc4e2a,#e31a1c,#bd0026,#800026'}, 'Magnitude of change',false);
   //var criticalBorder1 = ui.Map.Layer(result[3] , {}, 'Time of change');
   
   // Adding the layers to the map
