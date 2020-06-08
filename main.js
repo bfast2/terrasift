@@ -147,19 +147,8 @@ function downloadLink(mapCenter, theMap){
   var fileName = 'forestWatchdog-'
                   + ee.Date(imageResult.get('bfast:monitoringStart')).format('yMMdd').getInfo() + '-'
                   + ee.Date(imageResult.get('bfast:monitoringEnd')).format('yMMdd').getInfo()
-  //var scale = 10 * 156543.03392 * Math.cos(mapCenter.lat * Math.PI / 180) / Math.pow(2, mapCenter.zoom)
-  //print(scale/10, 'calculated scale')
-  //print(theMap.getScale(),'map\'s scale')
-  //print(theMap.getScale()/scale*10,'multiplying factor')
-  //print(156543.03392*theMap.getScale()/scale*10,'true constant')
-  //var newscale = 161570.0817965707 * Math.cos(mapCenter.lat * Math.PI / 180) / Math.pow(2, mapCenter.zoom)
-  //print(newscale, 'new scale')
-  //var difference = Math.abs(newscale - theMap.getScale())
-  //print(Math.abs(newscale - theMap.getScale()),'difference')
-  //print(difference < 0.0001 ? 'same' : difference)
-  //theMap.widgets().get(0).setUrl(imageResult.getDownloadURL({name : fileName, crs: ee.Projection('EPSG:3857'), scale: scale, region: theMap.getBounds(true), filePerBand: false}))
   imageResult.getDownloadURL({name : fileName, crs: ee.Projection('EPSG:3857'), scale: theMap.getScale(), region: theMap.getBounds(true), filePerBand: false},function(url){
-    theMap.widgets().get(0).setValue('Download this dataset at ' + theMap.getScale() + ' meters/pixel');
+    theMap.widgets().get(0).setValue('Download this dataset at ' + theMap.getScale().toFixed(3) * 10 + ' meters/pixel');
     theMap.widgets().get(0).setUrl(url);
   })
 }
