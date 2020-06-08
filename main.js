@@ -148,6 +148,8 @@ function downloadLink(mapCenter, theMap){
                   + ee.Date(imageResult.get('bfast:monitoringStart')).format('yMMdd').getInfo() + '-'
                   + ee.Date(imageResult.get('bfast:monitoringEnd')).format('yMMdd').getInfo()
   var scale = 10 * 156543.03392 * Math.cos(mapCenter.lat * Math.PI / 180) / Math.pow(2, mapCenter.zoom)
+  print(scale, 'calculated scale')
+  print(theMap.getScale(),'map\'s scale')
   //theMap.widgets().get(0).setUrl(imageResult.getDownloadURL({name : fileName, crs: ee.Projection('EPSG:3857'), scale: scale, region: theMap.getBounds(true), filePerBand: false}))
   imageResult.getDownloadURL({name : fileName, crs: ee.Projection('EPSG:3857'), scale: scale, region: theMap.getBounds(true), filePerBand: false},function(url){
     theMap.widgets().get(0).setValue('Download this dataset at ' + scale.toFixed(2) + ' meters/pixel');
